@@ -61,8 +61,13 @@ def format_to_email(data, old):
 
     # determine whether grades have changed, and if so which classes
     for index in xrange(0, len(data)):
-        if (data[index][1] != old[index][1]) or (data[index][0] != old[index][0]):
-            changed.append([data[index][0], data[index][1], (data[index][1] - old[index][1])])
+        try:
+            if (data[index][1] != old[index][1]) or (data[index][0] != old[index][0]):
+                changed.append([data[index][0], data[index][1], (data[index][1] - old[index][1])])
+        # if classes are missing or changed, exit the program
+        # everything will work normally the next time the program is run
+        except IndexError, TypeError:
+            sys.exit()
         body = body + "<tr><td style='padding: 0.3em 2em;'>" + data[index][0] + ":</td><td>" + str(data[index][1]) + "</td></tr>"
 
     body = body + "</table><br><br>"
@@ -110,7 +115,15 @@ for row in soup2.find_all("table", {"class" : "student_row"}):
     course_name = str(row.find("td", {"class": "course"}).a.text)
     new_data.append([course_name, grade])
 
-old_data = pickle.load(open('data.txt', 'rb'))
+
+try:
+    old_data = pickle.load(open('data.txt', 'rb'))
+# if data.txt is missing, load it from new_data and then quit
+# everything will work normally the next time the program is run
+except IOError, EOFError:
+    pickle.dump(new_data, open('data.txt', 'wb'))
+    pickle.dump(new_data, open('data.txt', 'wb'))
+    sys.exit()
 
 if new_data != old_data:
     pickle.dump(new_data, open('data.txt', 'wb'))
