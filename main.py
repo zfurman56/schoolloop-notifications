@@ -133,6 +133,9 @@ def main():
         pickle.dump(new_data, open('data.txt', 'wb'))
         send_email(format_to_email(new_data, old_data), args[3], args[4], args[5], args[6])
 
-while True:
-    main()
-    time.sleep(60)
+try:
+    while True:
+        main()
+        time.sleep(60)
+except KeyboardInterrupt:
+    print "User terminated the program, shutting down..."
