@@ -64,7 +64,7 @@ def format_to_email(data, old):
     for index in xrange(0, len(data)):
         try:
             if (data[index][1] != old[index][1]) or (data[index][0] != old[index][0]):
-                changed.append([data[index][0], data[index][1], (data[index][1] - old[index][1])])
+                changed.append([data[index][0], data[index][1], (round(100*(data[index][1] - old[index][1]))/100)])
         # if classes are missing or changed, exit the program
         # everything will work normally the next time the program is run
         except IndexError, TypeError:
