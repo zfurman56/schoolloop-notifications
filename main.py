@@ -6,6 +6,7 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import sys
+import time
 
 
 # parse command line arguments
@@ -84,48 +85,54 @@ def format_to_email(data, old):
 
     return ((top + body), regular)
 
-# need to make two requests -
-# the first to gather necessary login fields and cookies,
-# the second to actually login
+def main():
+    """Main progam loop."""
 
-# make first request
-request1 = requests.get(('https://' + args[0] + '.schoolloop.com/portal/guest_home?d=x'))
-soup1 = BeautifulSoup(request1.text)
+    # need to make two requests -
+    # the first to gather necessary login fields and cookies,
+    # the second to actually login
 
-# parse data, create data for next request
-form_data_id = soup1.find("input", {"id" : "form_data_id"})['value']
-cookie_sent = {'JSESSIONID': request1.cookies['JSESSIONID'], 'slid': request1.cookies['slid']}
-payload = {'login_name' : args[1], 'password' : args[2], 'event_override' : 'login', 'form_data_id' : form_data_id}
+    # make first request
+    request1 = requests.get(('https://' + args[0] + '.schoolloop.com/portal/guest_home?d=x'))
+    soup1 = BeautifulSoup(request1.text)
 
-# make second request
-request2 = requests.post(('https://' + args[0] + '.schoolloop.com/portal/guest_home?etarget=login_form'), cookies=cookie_sent, data=payload)
-soup2 = BeautifulSoup(request2.text)
+    # parse data, create data for next request
+    form_data_id = soup1.find("input", {"id" : "form_data_id"})['value']
+    cookie_sent = {'JSESSIONID': request1.cookies['JSESSIONID'], 'slid': request1.cookies['slid']}
+    payload = {'login_name' : args[1], 'password' : args[2], 'event_override' : 'login', 'form_data_id' : form_data_id}
 
-new_data = []
+    # make second request
+    request2 = requests.post(('https://' + args[0] + '.schoolloop.com/portal/guest_home?etarget=login_form'), cookies=cookie_sent, data=payload)
+    soup2 = BeautifulSoup(request2.text)
 
-# find and loop through courses
-for row in soup2.find_all("table", {"class" : "student_row"}):
+    new_data = []
+
+    # find and loop through courses
+    for row in soup2.find_all("table", {"class" : "student_row"}):
+
+        try:
+            grade = float(row.find("div", {"class": "percent"}).text.replace('%', ''))
+        # if class doesn't have a grade
+        except AttributeError:
+            grade = 'None'
+
+        course_name = str(row.find("td", {"class": "course"}).a.text)
+        new_data.append([course_name, grade])
+
 
     try:
-        grade = float(row.find("div", {"class": "percent"}).text.replace('%', ''))
-    # if class doesn't have a grade
-    except AttributeError:
-        grade = 'None';
+        old_data = pickle.load(open('data.txt', 'rb'))
+    # if data.txt is missing, load it from new_data and then quit
+    # everything will work normally the next time the program is run
+    except IOError, EOFError:
+        pickle.dump(new_data, open('data.txt', 'wb'))
+        pickle.dump(new_data, open('data.txt', 'wb'))
+        sys.exit()
 
-    course_name = str(row.find("td", {"class": "course"}).a.text)
-    new_data.append([course_name, grade])
+    if new_data != old_data:
+        pickle.dump(new_data, open('data.txt', 'wb'))
+        send_email(format_to_email(new_data, old_data), args[3], args[4], args[5], args[6])
 
-
-try:
-    old_data = pickle.load(open('data.txt', 'rb'))
-# if data.txt is missing, load it from new_data and then quit
-# everything will work normally the next time the program is run
-except IOError, EOFError:
-    pickle.dump(new_data, open('data.txt', 'wb'))
-    pickle.dump(new_data, open('data.txt', 'wb'))
-    sys.exit()
-
-if new_data != old_data:
-    pickle.dump(new_data, open('data.txt', 'wb'))
-    send_email(format_to_email(new_data, old_data), args[3], args[4], args[5], args[6])
-
+while True:
+    main()
+    time.sleep(60)
