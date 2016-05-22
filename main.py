@@ -58,7 +58,7 @@ def format_to_email(data, old):
     """Convert raw data to email format."""
 
     changed = []
-    body = "<br><table>"
+    body = "<br><table align='center'>"
 
     # determine whether grades have changed, and if so which classes
     for index in xrange(0, len(data)):
