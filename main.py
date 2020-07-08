@@ -13,11 +13,15 @@ import emailer
 # parse command line arguments
 args = sys.argv[1:]
 if len(args) != 7:
-    print "usage: python main.py <schoolloop school prefix> <schoolloop username> <schoolloop password> <destination address> <sender address> <sender password> <smtp address>"
-    sys.exit()
+    sys.exit("Usage: python main.py <schoolloop school prefix> <schoolloop username> <schoolloop password> <destination address> <sender address> <sender password> <smtp address> <time between updates>")
 
+if len(args) == 8:
+    update_time = int(args[7])
+else:
+    update_time = int(60)
+    
 def main():
-    """Main progam loop."""
+    """Main program loop."""
 
     # need to make two requests -
     # the first to gather necessary login fields and cookies,
@@ -48,7 +52,8 @@ def main():
             grade = 'None'
 
         course_name = str(row.find("td", {"class": "course"}).a.text)
-        new_data.append([course_name, grade])
+        teacher_name = str(row.find("td", {"class": "teacher co-teacher"}).a.text).strip().split(", ")[1] + " " + str(row.find("td", {"class": "teacher co-teacher"}).a.text).strip().split(", ")[0]
+        new_data.append([course_name, grade, teacher_name])
 
 
     try:
@@ -67,6 +72,6 @@ def main():
 try:
     while True:
         main()
-        time.sleep(60)
+        time.sleep(update_time)
 except KeyboardInterrupt:
     print "User terminated the program, shutting down..."
